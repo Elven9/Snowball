@@ -6,8 +6,9 @@ import requests
 import urllib3
 import json
 import os
-from datetime import datetime
+import discord
 
+from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv("prod.env")
@@ -32,7 +33,12 @@ class BBS:
         # self.db = sqlite3.connect("bbs.db")
         pass
 
-    def get_latest_posts(self, type: str = "all", limit: int = 60, skip: int = 0):
+    def get_latest_posts(self,
+                         type: str = "all",
+                         limit: int = 60,
+                         skip: int = 0
+                        ) -> list[BBS_Post]:
+
         response = requests.get(
             f"https://{BBS.BASE_URL}/webapi/posts/latest?type={type}&take={limit}&skip={skip}", verify=False)
         ret = []
@@ -40,31 +46,28 @@ class BBS:
             ret.append(BBS_Post(p))
         return ret
 
-def dc_api(method, endpoint, data):
-    # send to dc endpoints
-    url = "https://discord.com/api/v10/"
-    req = requests.Request(
-        method=method,
-        url=url + endpoint,
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bot {os.getenv('DISCORD_TOKEN')}",
-        }
-    )
-    if data:
-        req.json = data
-    s = requests.Session()
-    prepped = s.prepare_request(req)
-    return s.send(prepped)
+class DC_Client(discord.Client):
+    def __init__(self):
+        intents = discord.Intents.none()
+        super().__init__(intents=intents)
+
+    async def on_ready(self):
+        print(f"Logged in as {self.user}")
+
+        async for guild in self.fetch_guilds():
+            print(f"Connected to {guild.name}")
+
+            channels = await guild.fetch_channels()
+            for channel in channels:
+                if channel.name == os.getenv("BBS_REPORT_CHANNEL_NAME"):
+                    print(f"Found channel {channel.name}")
+                    await channel.send("Snowball is online!!!")
 
 def main():
-    print("Hello from snowball-local")
+    print("Starting snowball-local")
 
-    resp = dc_api("POST", f"channels/{os.getenv('BBS_REPORT_CHANNEL')}/messages", {
-        "content": "Hello from snowball-local again :)"
-    })
-    print(resp.status_code)
-    print(resp.text)
+    client = DC_Client()
+    client.run(os.getenv("DISCORD_TOKEN"))
 
 if __name__ == "__main__":
     # Disable SSL warning
