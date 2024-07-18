@@ -7,3 +7,4 @@ prod.env
 
 # file
 *.cache.json
+data

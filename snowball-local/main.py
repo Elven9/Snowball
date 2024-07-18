@@ -12,7 +12,7 @@ import discord
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
-load_dotenv("prod.env")
+load_dotenv("conf/prod.env")
 
 class Simple_Cache:
     def __init__(self, on_disk_file = "bbs.cache.json") -> None:
@@ -62,7 +62,7 @@ class BBS_Post:
 class BBS:
     BASE_URL = "bbs.synology.inc"
     def __init__(self, client: discord.Client) -> None:
-        self.cache: Simple_Cache = Simple_Cache(os.getenv("CACHE_FILE_NAME"))
+        self.cache: Simple_Cache = Simple_Cache(os.getenv("BBS_CACHE_FILE_NAME"))
         self.client: discord.Client = client
 
         # Get notify channel
@@ -82,6 +82,7 @@ class BBS:
         for post in posts:
             key = f"{post.forum_id}-{post.post_id}"
             if not self.cache.check_exist(key):
+                print(f"New post found: {post.title}")
                 self.cache.set_exist(key)
                 await self._notify(post)
 
@@ -114,7 +115,7 @@ class DC_Client(discord.Client):
 
         while True:
             await bbs.run()
-            await asyncio.sleep(10)
+            await asyncio.sleep(int(os.getenv("BBS_POLLING_INTERVAL")))
 
 def main():
     print("Starting snowball-local")

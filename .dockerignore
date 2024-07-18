@@ -1,0 +1,14 @@
+# python
+.venv
+__pycache__
+
+# dir
+conf
+README.md
+
+# git
+.gitignore
+.git
+
+# Docker
+Dockerfile
