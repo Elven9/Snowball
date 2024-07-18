@@ -1,17 +1,39 @@
 # snowball-local is a local daemon-style application that will be set up in intranet
 # to receive and process events from syno service.
 
-import sqlite3
 import requests
 import urllib3
 import json
 import os
+import threading
+import asyncio
 import discord
 
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
 load_dotenv("prod.env")
+
+class Simple_Cache:
+    def __init__(self, on_disk_file = "bbs.cache.json") -> None:
+        # check if file exists
+        # if yes, load it
+        self.on_disk_file = on_disk_file
+        try:
+            with open(self.on_disk_file, "r") as f:
+                self.cache = json.load(f)
+        except FileNotFoundError:
+            self.cache = {}
+
+    def check_exist(self, key: str) -> bool:
+        return key in self.cache
+
+    def set_exist(self, key: str) -> None:
+        self.cache[key] = ""
+
+        # Write to disk
+        with open(self.on_disk_file, "w") as f:
+            json.dump(self.cache, f)
 
 class BBS_Post:
     BASE_URL = "bbs.synology.inc"
@@ -39,16 +61,40 @@ class BBS_Post:
 
 class BBS:
     BASE_URL = "bbs.synology.inc"
-    def __init__(self) -> None:
-        # init sqlite storage
-        # self.db = sqlite3.connect("bbs.db")
-        pass
+    def __init__(self, client: discord.Client) -> None:
+        self.cache: Simple_Cache = Simple_Cache(os.getenv("CACHE_FILE_NAME"))
+        self.client: discord.Client = client
 
-    def get_latest_posts(self,
-                         type: str = "all",
-                         limit: int = 60,
-                         skip: int = 0
-                        ) -> list[BBS_Post]:
+        # Get notify channel
+        self.channels: list[discord.abc.GuildChannel] = []
+
+    async def update_notify_channel(self):
+        async for guild in self.client.fetch_guilds():
+            channels = await guild.fetch_channels()
+            for channel in channels:
+                if channel.name == os.getenv("BBS_REPORT_CHANNEL_NAME"):
+                    self.channels.append(channel)
+
+    async def run(self):
+        # this function will be called every 10 secs wwww
+        posts = self._get_latest_posts()
+
+        for post in posts:
+            key = f"{post.forum_id}-{post.post_id}"
+            if not self.cache.check_exist(key):
+                self.cache.set_exist(key)
+                await self._notify(post)
+
+    async def _notify(self, post: BBS_Post):
+        for ch in self.channels:
+            await ch.send(embed=post.discord_embed())
+
+    def _get_latest_posts(
+        self,
+        type: str = "all",
+        limit: int = 5,
+        skip: int = 0
+    ) -> list[BBS_Post]:
 
         response = requests.get(
             f"https://{BBS.BASE_URL}/webapi/posts/latest?type={type}&take={limit}&skip={skip}", verify=False)
@@ -63,19 +109,12 @@ class DC_Client(discord.Client):
         super().__init__(intents=intents)
 
     async def on_ready(self):
-        bbs = BBS()
-        posts = bbs.get_latest_posts()
+        bbs = BBS(self)
+        await bbs.update_notify_channel()
 
-        print(f"Logged in as {self.user}")
-
-        async for guild in self.fetch_guilds():
-            print(f"Connected to {guild.name}")
-
-            channels = await guild.fetch_channels()
-            for channel in channels:
-                if channel.name == os.getenv("BBS_REPORT_CHANNEL_NAME"):
-                    print(f"Found channel {channel.name}")
-                    await channel.send("", embed=posts[0].discord_embed())
+        while True:
+            await bbs.run()
+            await asyncio.sleep(10)
 
 def main():
     print("Starting snowball-local")

@@ -4,3 +4,6 @@ __pycache__
 
 # env
 prod.env
+
+# file
+*.cache.json
