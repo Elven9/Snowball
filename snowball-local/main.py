@@ -82,7 +82,6 @@ class BBS:
         for post in posts:
             key = f"{post.forum_id}-{post.post_id}"
             if not self.cache.check_exist(key):
-                print(f"New post found: {post.title}")
                 self.cache.set_exist(key)
                 await self._notify(post)
 
@@ -118,8 +117,6 @@ class DC_Client(discord.Client):
             await asyncio.sleep(int(os.getenv("BBS_POLLING_INTERVAL")))
 
 def main():
-    print("Starting snowball-local")
-
     client = DC_Client()
     client.run(os.getenv("DISCORD_TOKEN"))
 
