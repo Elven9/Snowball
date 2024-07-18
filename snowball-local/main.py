@@ -4,8 +4,13 @@
 import sqlite3
 import requests
 import urllib3
+import json
+import os
 from datetime import datetime
-from collections import namedtuple
+
+from dotenv import load_dotenv
+
+load_dotenv("prod.env")
 
 class BBS_Post:
     BASE_URL = "bbs.synology.inc"
@@ -35,13 +40,31 @@ class BBS:
             ret.append(BBS_Post(p))
         return ret
 
+def dc_api(method, endpoint, data):
+    # send to dc endpoints
+    url = "https://discord.com/api/v10/"
+    req = requests.Request(
+        method=method,
+        url=url + endpoint,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bot {os.getenv('DISCORD_TOKEN')}",
+        }
+    )
+    if data:
+        req.json = data
+    s = requests.Session()
+    prepped = s.prepare_request(req)
+    return s.send(prepped)
+
 def main():
     print("Hello from snowball-local")
-    # Send a request to snowball-remote
-    bbs = BBS()
-    posts = bbs.get_latest_posts()
-    for post in posts:
-        print(f"{post.title} in {post.forum_name} at {post.create_time}")
+
+    resp = dc_api("POST", f"channels/{os.getenv('BBS_REPORT_CHANNEL')}/messages", {
+        "content": "Hello from snowball-local again :)"
+    })
+    print(resp.status_code)
+    print(resp.text)
 
 if __name__ == "__main__":
     # Disable SSL warning
