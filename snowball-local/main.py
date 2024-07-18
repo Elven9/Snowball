@@ -8,7 +8,7 @@ import json
 import os
 import discord
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
 load_dotenv("prod.env")
@@ -19,12 +19,23 @@ class BBS_Post:
         self.title = post["title"]
         self.brief = post["content_brief"]
         self.forum_name = post["board"]["name"]
-        self.create_time = datetime.strptime(post["datetime"], "%Y-%m-%d %H:%M:%S")
+        self.create_time = datetime.strptime(post["datetime"], "%Y-%m-%d %H:%M:%S")+timedelta(hours=8)
 
         # Internal used
         self.post_id = post["id"]
         self.forum_id = post["board"]["id"]
         self.url = f"https://{BBS_Post.BASE_URL}/forum/{self.forum_id}/post/{self.post_id}"
+
+    def discord_embed(self) -> discord.Embed:
+        emb = discord.Embed()
+        emb.colour = discord.Colour.dark_red()
+        emb.title = self.title
+        emb.description = f"{self.brief}..."
+        emb.url = self.url
+        emb.add_field(name="Forum", value=self.forum_name, inline=True)
+        emb.add_field(name="Create Time", value=self.create_time.strftime("%Y-%m-%d %H:%M:%S"), inline=True)
+
+        return emb
 
 class BBS:
     BASE_URL = "bbs.synology.inc"
@@ -52,6 +63,9 @@ class DC_Client(discord.Client):
         super().__init__(intents=intents)
 
     async def on_ready(self):
+        bbs = BBS()
+        posts = bbs.get_latest_posts()
+
         print(f"Logged in as {self.user}")
 
         async for guild in self.fetch_guilds():
@@ -61,7 +75,7 @@ class DC_Client(discord.Client):
             for channel in channels:
                 if channel.name == os.getenv("BBS_REPORT_CHANNEL_NAME"):
                     print(f"Found channel {channel.name}")
-                    await channel.send("Snowball is online!!!")
+                    await channel.send("", embed=posts[0].discord_embed())
 
 def main():
     print("Starting snowball-local")
