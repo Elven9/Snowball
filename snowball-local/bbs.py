@@ -6,6 +6,10 @@ import discord
 
 from datetime import datetime, timedelta
 from utils import Simple_Cache
+from collections import namedtuple
+
+# Type def
+BBS_Forum = namedtuple("BBS_Forum", ["id", "name"])
 
 class BBS_Post:
     BASE_URL = "bbs.synology.inc"
@@ -47,6 +51,9 @@ class BBS:
         # Get notify channel
         self.channels: list[discord.abc.GuildChannel] = []
 
+        # setting
+        self.forum_thread_sub = [int(id) for id in os.getenv("BBS_FORUM_COMMENT_SUB").split(",")]
+
     async def update_notify_channel(self):
         async for guild in self.client.fetch_guilds():
             channels = await guild.fetch_channels()
@@ -55,11 +62,11 @@ class BBS:
                     self.channels.append(channel)
 
     async def run(self):
-        # this function will be called every 10 secs wwww
+        # this function will be called every 10 secs w  www
         posts = self._get_latest_posts()
 
         for post in posts:
-            key = f"{post.forum_id}-{post.post_id}"
+            key = self._gen_forum_cache_key(post)
             if not self.cache.check_exist(key):
                 self.cache.set_exist(key)
                 await self._notify(post)
@@ -67,6 +74,12 @@ class BBS:
     async def _notify(self, post: BBS_Post):
         for ch in self.channels:
             await ch.send(embed=post.discord_embed())
+
+    def _gen_forum_cache_key(self, post: BBS_Post) -> str:
+        key = f"{post.forum_id}-{post.post_id}"
+        if int(post.forum_id) in self.forum_thread_sub:
+            key += f"-{post.create_time}"
+        return key
 
     def _get_latest_posts(
         self,
