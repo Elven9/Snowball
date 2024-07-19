@@ -3,6 +3,7 @@ import requests
 import os
 import asyncio
 import discord
+from discord import app_commands
 
 from datetime import datetime, timedelta
 from utils import Simple_Cache
@@ -31,7 +32,7 @@ class BBS_Post:
         emb = discord.Embed()
         emb.colour = discord.Colour.dark_red()
         emb.title = self.title
-        emb.description = f"{self.brief}..."
+        emb.description = self.brief
         emb.url = self.url
         emb.add_field(name="Forum", value=self.forum_name, inline=True)
         emb.add_field(name="Create Time", value=self.create_time.strftime(
@@ -55,11 +56,11 @@ class BBS:
         self.forum_thread_sub = [int(id) for id in os.getenv("BBS_FORUM_COMMENT_SUB").split(",")]
 
     async def update_notify_channel(self):
+        self.channels = []
         async for guild in self.client.fetch_guilds():
-            channels = await guild.fetch_channels()
-            for channel in channels:
-                if channel.name == os.getenv("BBS_REPORT_CHANNEL_NAME"):
-                    self.channels.append(channel)
+            self.channels.append(discord.utils.find(
+                lambda ch: ch.name == os.getenv("BBS_REPORT_CHANNEL_NAME"), await guild.fetch_channels()
+            ))
 
     async def run(self):
         # this function will be called every 10 secs w  www

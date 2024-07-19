@@ -20,3 +20,7 @@ class Simple_Cache:
         # Write to disk
         with open(self.on_disk_file, "w") as f:
             json.dump(self.cache, f)
+
+class Simple_Keyword:
+    def __init__(self) -> None:
+        self.on_disk_file = "bbs.keyword.json"
