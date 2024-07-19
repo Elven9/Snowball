@@ -38,6 +38,7 @@ async def subscribe_to_bbs(interation: discord.Interaction, keyword: str):
     global COMMANDS_EXTRAS
     bbs: BBS = COMMANDS_EXTRAS["bbs"]
 
+    bbs.add_keyword(interation.user.id, keyword)
     await interation.response.send_message(f"Subscribed to {keyword}", ephemeral=True)
 
 @app_commands.command(
@@ -51,8 +52,7 @@ async def unsubscribe_to_bbs(interation: discord.Interaction, keyword: str):
     global COMMANDS_EXTRAS
     bbs: BBS = COMMANDS_EXTRAS["bbs"]
 
-    print(keyword)
-
+    bbs.remove_keyword(interation.user.id, keyword)
     await interation.response.send_message(f"Unsbscribed to {keyword}", ephemeral=True)
 
 

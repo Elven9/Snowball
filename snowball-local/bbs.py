@@ -6,7 +6,7 @@ import discord
 from discord import app_commands
 
 from datetime import datetime, timedelta
-from utils import Simple_Cache
+from utils import Simple_Cache, Simple_Keyword
 from collections import namedtuple
 
 # Type def
@@ -47,6 +47,8 @@ class BBS:
     def __init__(self, client: discord.Client) -> None:
         self.cache: Simple_Cache = Simple_Cache(
             os.getenv("BBS_CACHE_FILE_NAME"))
+        self.keyword: Simple_Keyword = Simple_Keyword(
+            os.getenv("BBS_KEYWORD_FILE_NAME"))
         self.client: discord.Client = client
 
         # Get notify channel
@@ -73,9 +75,21 @@ class BBS:
                 await self._notify(post)
 
     async def _notify(self, post: BBS_Post):
-        for ch in self.channels:
-            await ch.send(embed=post.discord_embed())
+        ids = self.keyword.get_users_from_text(post.forum_name+post.title+post.brief)
 
+        for ch in self.channels:
+            users = [await ch.guild.fetch_member(id) for id in ids]
+            mention_text = "".join([u.mention for u in users])
+
+            await ch.send(mention_text, embed=post.discord_embed())
+
+    def add_keyword(self, user_id: int, keyword: str):
+        self.keyword.add_user_to_keyword(user_id, keyword)
+
+    def remove_keyword(self, user_id: int, keyword: str):
+        self.keyword.remove_user_from_keyword(user_id, keyword)
+
+    # private
     def _gen_forum_cache_key(self, post: BBS_Post) -> str:
         key = f"{post.forum_id}-{post.post_id}"
         if int(post.forum_id) in self.forum_thread_sub:
