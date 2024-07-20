@@ -56,6 +56,7 @@ class BBS:
 
         # setting
         self.forum_thread_sub = [int(id) for id in os.getenv("BBS_FORUM_COMMENT_SUB").split(",")]
+        self.polling_post_count = int(os.getenv("BBS_POLLING_POST_COUNT"))
 
     async def update_notify_channel(self):
         self.channels = []
@@ -65,8 +66,7 @@ class BBS:
             ))
 
     async def run(self):
-        # this function will be called every 10 secs w  www
-        posts = self._get_latest_posts()
+        posts = self._get_latest_posts(limit=self.polling_post_count)
 
         for post in posts:
             key = self._gen_forum_cache_key(post)
