@@ -4,8 +4,9 @@ import urllib3
 import os
 import asyncio
 import discord
-from discord import app_commands
+import logging
 
+from discord import app_commands
 from dotenv import load_dotenv
 from bbs import BBS
 
@@ -55,7 +56,6 @@ async def unsubscribe_to_bbs(interation: discord.Interaction, keyword: str):
     bbs.remove_keyword(interation.user.id, keyword)
     await interation.response.send_message(f"Unsbscribed to {keyword}", ephemeral=True)
 
-
 class DC_Client(discord.Client):
     def __init__(self):
         # intents
@@ -71,10 +71,23 @@ class DC_Client(discord.Client):
         # [NEED to REFACTOR]
         COMMANDS_EXTRAS["bbs"] = self.bbs
 
+        # Task
+        self.task = None
+
     async def on_ready(self):
         await self.bbs.update_notify_channel()
         await self.cmd.register()
 
+        if not self.task is None:
+            self.task.cancel()
+
+        try:
+            async with asyncio.TaskGroup() as tg:
+                self.task = tg.create_task(self._task_bbs())
+        except asyncio.CancelledError:
+            pass
+
+    async def _task_bbs(self):
         while True:
             await self.bbs.run()
             await asyncio.sleep(int(os.getenv("BBS_POLLING_INTERVAL")))

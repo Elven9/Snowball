@@ -3,11 +3,11 @@ import requests
 import os
 import asyncio
 import discord
-from discord import app_commands
 
+from collections import namedtuple
+from discord import app_commands
 from datetime import datetime, timedelta
 from utils import Simple_Cache, Simple_Keyword
-from collections import namedtuple
 
 # Type def
 BBS_Forum = namedtuple("BBS_Forum", ["id", "name"])
