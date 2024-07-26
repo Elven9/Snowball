@@ -82,7 +82,8 @@ class BBS:
             mention_text = "".join([u.mention for u in users])
 
             await ch.send(embed=post.discord_embed())
-            await ch.send(mention_text)
+            if mention_text != "":
+                await ch.send(mention_text)
 
     def add_keyword(self, user_id: int, keyword: str):
         self.keyword.add_user_to_keyword(user_id, keyword)
