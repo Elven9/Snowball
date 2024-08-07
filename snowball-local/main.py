@@ -73,6 +73,7 @@ class DC_Client(discord.Client):
 
         # Task
         self.task = None
+        self.logger = logging.getLogger("discord")
 
     async def on_ready(self):
         await self.bbs.update_notify_channel()
@@ -88,11 +89,9 @@ class DC_Client(discord.Client):
             pass
 
     async def _task_bbs(self):
+        self.logger.info("Start BBS Task")
         while True:
-            try:
-                await self.bbs.run()
-            except Exception as e:
-                print(e)
+            await self.bbs.run()
             await asyncio.sleep(int(os.getenv("BBS_POLLING_INTERVAL")))
 
 def main():

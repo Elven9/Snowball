@@ -3,6 +3,7 @@ import requests
 import os
 import asyncio
 import discord
+import logging
 
 from collections import namedtuple
 from discord import app_commands
@@ -58,6 +59,8 @@ class BBS:
         self.forum_thread_sub = [int(id) for id in os.getenv("BBS_FORUM_COMMENT_SUB").split(",")]
         self.polling_post_count = int(os.getenv("BBS_POLLING_POST_COUNT"))
 
+        self.logger = logging.getLogger("discord")
+
     async def update_notify_channel(self):
         self.channels = []
         async for guild in self.client.fetch_guilds():
@@ -105,11 +108,21 @@ class BBS:
         skip: int = 0
     ) -> list[BBS_Post]:
 
-        response = requests.get(
-            f"https://{BBS.BASE_URL}/webapi/posts/latest?type={type}&take={limit}&skip={skip}", verify=False)
-        ret = []
-        if response.status_code != 200:
+        try:
+            response = requests.get(
+                f"https://{BBS.BASE_URL}/webapi/posts/latest?type={type}&take={limit}&skip={skip}",
+                verify=False,
+                timeout=int(os.getenv("BBS_POLLING_INTERVAL"))-1
+            )
+            ret = []
+            if response.status_code != 200:
+                raise Exception(f"BBS Polling Error, Status Code: {response.status_code}")
+            for p in response.json():
+                ret.append(BBS_Post(p))
             return ret
-        for p in response.json():
-            ret.append(BBS_Post(p))
-        return ret
+        except requests.exceptions.Timeout:
+            self.logger.warn("BBS Polling Timeout")
+        except Exception as e:
+            self.logger.error(e)
+        finally:
+            return []
