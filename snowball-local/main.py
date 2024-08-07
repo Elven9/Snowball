@@ -89,7 +89,10 @@ class DC_Client(discord.Client):
 
     async def _task_bbs(self):
         while True:
-            await self.bbs.run()
+            try:
+                await self.bbs.run()
+            except Exception as e:
+                print(e)
             await asyncio.sleep(int(os.getenv("BBS_POLLING_INTERVAL")))
 
 def main():

@@ -108,6 +108,8 @@ class BBS:
         response = requests.get(
             f"https://{BBS.BASE_URL}/webapi/posts/latest?type={type}&take={limit}&skip={skip}", verify=False)
         ret = []
+        if response.status_code != 200:
+            return ret
         for p in response.json():
             ret.append(BBS_Post(p))
         return ret
