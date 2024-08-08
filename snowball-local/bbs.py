@@ -108,21 +108,20 @@ class BBS:
         skip: int = 0
     ) -> list[BBS_Post]:
 
+        ret = []
         try:
             response = requests.get(
                 f"https://{BBS.BASE_URL}/webapi/posts/latest?type={type}&take={limit}&skip={skip}",
                 verify=False,
                 timeout=int(os.getenv("BBS_POLLING_INTERVAL"))-1
             )
-            ret = []
             if response.status_code != 200:
                 raise Exception(f"BBS Polling Error, Status Code: {response.status_code}")
             for p in response.json():
                 ret.append(BBS_Post(p))
-            return ret
         except requests.exceptions.Timeout:
             self.logger.warn("BBS Polling Timeout")
         except Exception as e:
             self.logger.error(e)
-        finally:
-            return []
+
+        return ret
