@@ -20,6 +20,8 @@ class BBS_Post:
         self.title = post["title"]
         self.brief = post["content_brief"]
         self.forum_name = post["board"]["name"]
+        self.author_display_name = post["user"]["name"]
+        self.author_id = post["user"]["id_alias"]
         self.create_time = datetime.strptime(
             post["datetime"], "%Y-%m-%d %H:%M:%S")+timedelta(hours=8)
 
@@ -38,6 +40,7 @@ class BBS_Post:
         emb.add_field(name="Forum", value=self.forum_name, inline=True)
         emb.add_field(name="Create Time", value=self.create_time.strftime(
             "%Y-%m-%d %H:%M:%S"), inline=True)
+        emb.add_field(name="Author", value=f"{self.author_display_name} ({self.author_id})", inline=True)
 
         return emb
 
